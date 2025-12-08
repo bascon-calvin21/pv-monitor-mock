@@ -103,28 +103,45 @@
       font-size: 0.9em;
       margin-bottom: 6px;
     }
+    .power-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+    .power-label {
+      font-size: 0.9em;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #ccc;
+    }
+    .power-value {
+      font-size: 1.6em;
+      font-weight: bold;
+    }
+    .stats-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .stat-box {
+      flex: 1;
+      padding: 4px 6px;
+      background: #202020;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85em;
+    }
     .value {
-      font-size: 1.2em;
+      font-size: 1.1em;
       font-weight: bold;
     }
     .unit {
       font-size: 0.8em;
       color: #ccc;
-    }
-    .row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
-      gap: 8px;
-      flex-wrap: nowrap;
-    }
-    .row .col {
-      flex: 1;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 4px;
+      margin-left: 2px;
     }
     .btn-row {
       display: flex;
@@ -188,7 +205,7 @@
       { ip: "192.168.1.110" }
     ];
     const NODE_COUNT = nodes.length;
-    const MAX_POINTS = 60;
+    const MAX_POINTS = 24;
 
     let charts = [];
     let mockData = [];
@@ -215,23 +232,23 @@
           </div>
 
           <div class="panel-body">
-            <div class="row">
-              <span>Power</span>
-              <span class="value">
+            <div class="power-row">
+              <span class="power-label">Power</span>
+              <span class="power-value">
                 <span id="p${i}">--</span>
                 <span class="unit">W</span>
               </span>
             </div>
 
-            <div class="row">
-              <div class="col">
+            <div class="stats-row">
+              <div class="stat-box">
                 <span>Voltage</span>
                 <span class="value">
                   <span id="v${i}">--</span>
                   <span class="unit">V</span>
                 </span>
               </div>
-              <div class="col">
+              <div class="stat-box">
                 <span>Current</span>
                 <span class="value">
                   <span id="c${i}">--</span>
@@ -240,15 +257,15 @@
               </div>
             </div>
 
-            <div class="row">
-              <div class="col">
+            <div class="stats-row">
+              <div class="stat-box">
                 <span>Energy</span>
                 <span class="value">
                   <span id="e${i}">--</span>
                   <span class="unit">Wh</span>
                 </span>
               </div>
-              <div class="col">
+              <div class="stat-box">
                 <span>Dust</span>
                 <span class="value">
                   <span id="d${i}">--</span>
@@ -327,7 +344,7 @@
       data.labels.push("");
       data.datasets[0].data.push(power);
 
-      if (data.labels.length > 24) {
+      if (data.labels.length > MAX_POINTS) {
         data.labels.shift();
         data.datasets[0].data.shift();
       }
