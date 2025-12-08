@@ -161,11 +161,17 @@
   <script>
     // --- Mock node metadata (instead of NVS / dynamic C++) ---
     const nodes = [
-      { name: "Roof PV Array 1", ip: "192.168.1.101" },
-      { name: "Roof PV Array 2", ip: "192.168.1.102" },
-      { name: "Garage PV",       ip: "192.168.1.103" },
-      { name: "Spare Channel",   ip: "192.168.1.104" }
-    ];
+  { name: "Roof PV Array 1",  ip: "192.168.1.101" },
+  { name: "Roof PV Array 2",  ip: "192.168.1.102" },
+  { name: "Roof PV Array 3",  ip: "192.168.1.103" },
+  { name: "Garage PV 1",      ip: "192.168.1.104" },
+  { name: "Garage PV 2",      ip: "192.168.1.105" },
+  { name: "Ground Mount 1",   ip: "192.168.1.106" },
+  { name: "Ground Mount 2",   ip: "192.168.1.107" },
+  { name: "Spare Channel 1",  ip: "192.168.1.108" },
+  { name: "Spare Channel 2",  ip: "192.168.1.109" },
+  { name: "Spare Channel 3",  ip: "192.168.1.110" }
+];
     const NODE_COUNT = nodes.length;
     const MAX_POINTS = 60;
     const FIXED_CURRENT_THRESHOLD = 10.0; // amps, same as Version 3
