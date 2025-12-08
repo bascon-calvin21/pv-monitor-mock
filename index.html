@@ -327,7 +327,7 @@
       data.labels.push("");
       data.datasets[0].data.push(power);
 
-      if (data.labels.length > MAX_POINTS) {
+      if (data.labels.length > 24) {
         data.labels.shift();
         data.datasets[0].data.shift();
       }
