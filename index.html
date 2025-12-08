@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ESP32 PV NVR Monitor - Mock</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+      padding: 0;
+      background: #111;
+      color: #eee;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 0.2em;
+    }
+    .sub {
+      text-align: center;
+      font-size: 0.9em;
+      margin-bottom: 10px;
+      color: #aaa;
+    }
+    .top-card {
+      max-width: 900px;
+      margin: 0 auto 10px auto;
+      padding: 10px;
+      background: #222;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    }
+    .top-card form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+    }
+    input, button {
+      padding: 8px;
+      border-radius: 5px;
+      border: none;
+      font-size: 0.9em;
+    }
+    input {
+      background: #333;
+      color: #eee;
+    }
+    button {
+      background: #0a84ff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0c97ff;
+    }
+    #status {
+      text-align: center;
+      font-size: 0.85em;
+      margin-top: 6px;
+      color: #ccc;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .panel {
+      background: #181818;
+      border-radius: 10px;
+      padding: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.7);
+      transition: background 0.2s, border 0.2s;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 0.9em;
+    }
+    .left-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      background: #555;
+    }
+    .dot.online {
+      background: #0f0;
+    }
+    .dot.offline {
+      background: #f00;
+    }
+    .panel-body {
+      font-size: 0.9em;
+      margin-bottom: 6px;
+    }
+    .panel.low-current {
+      background: #401010;        /* darker red panel */
+      border: 1px solid #f00;     /* red border highlight */
+    }
+    .value {
+      font-size: 1.4em;
+      font-weight: bold;
+    }
+    .unit {
+      font-size: 0.8em;
+      color: #ccc;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .btn-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .btn-small {
+      flex: 1;
+      font-size: 0.75em;
+      padding: 5px;
+      background: #333;
+    }
+    .btn-small:hover {
+      background: #444;
+    }
+    canvas {
+      width: 100% !important;
+      max-height: 160px;
+    }
+  </style>
+</head>
+<body>
+  <h1>PV Multi-Node Monitor (Mock)</h1>
+  <div class="sub">GitHub Preview · Same layout as ESP32 Main Server</div>
+
+  <div class="top-card">
+    <!-- Mock of your Add Node form (non-functional here) -->
+    <form onsubmit="event.preventDefault(); alert('Mock only – real add happens on ESP32');">
+      <input type="text" name="name" placeholder="PV Name (e.g. Panel 1)" />
+      <input type="text" name="ip" placeholder="PV IP address" />
+      <button type="submit">Add Node</button>
+    </form>
+    <div id="status">Status: Mock running (no ESP32 needed)</div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // --- Mock node metadata (instead of NVS / dynamic C++) ---
+    const nodes = [
+      { name: "Roof PV Array 1", ip: "192.168.1.101" },
+      { name: "Roof PV Array 2", ip: "192.168.1.102" },
+      { name: "Garage PV",       ip: "192.168.1.103" },
+      { name: "Spare Channel",   ip: "192.168.1.104" }
+    ];
+    const NODE_COUNT = nodes.length;
+    const MAX_POINTS = 60;
+    const FIXED_CURRENT_THRESHOLD = 10.0; // amps, same as Version 3
+
+    let charts = [];
+    let mockData = [];
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = "Status: " + msg;
+    }
+
+    // Build the grid panels similar to ESP32 output
+    function buildGrid() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = "";
+
+      nodes.forEach((node, i) => {
+        const panel = document.createElement('div');
+        panel.className = "panel";
+        panel.id = "panel" + i;
+
+        panel.innerHTML = `
+          <div class="panel-header">
+            <div class="left-head">
+              <span class="dot online" id="status${i}"></span>
+              <span>CH ${i + 1} · ${node.name}</span>
+            </div>
+            <div style="font-size:0.8em;color:#aaa;">${node.ip}</div>
+          </div>
+
+          <div class="panel-body">
+            <div class="row"><span>Voltage</span>
+              <span class="value"><span id="v${i}">--</span> <span class="unit">V</span></span>
+            </div>
+            <div class="row"><span>Current</span>
+              <span class="value"><span id="c${i}">--</span> <span class="unit">A</span></span>
+            </div>
+            <div class="row"><span>Power</span>
+              <span class="value"><span id="p${i}">--</span> <span class="unit">W</span></span>
+            </div>
+            <div class="row"><span>Energy</span>
+              <span class="value"><span id="e${i}">--</span> <span class="unit">Wh</span></span>
+            </div>
+            <div class="row"><span>Dust</span>
+              <span class="value"><span id="d${i}">--</span> <span class="unit">%</span></span>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn-small" onclick="mockPingNode(${i})">Ping</button>
+              <button class="btn-small" onclick="mockFetchOnce(${i})">Fetch Now</button>
+              <button class="btn-small" onclick="mockDeleteNode(${i})">Delete</button>
+            </div>
+          </div>
+
+          <canvas id="chart${i}"></canvas>
+        `;
+        grid.appendChild(panel);
+      });
+    }
+
+    function initCharts() {
+      charts = [];
+      mockData = [];
+      for (let i = 0; i < NODE_COUNT; i++) {
+        const ctx = document.getElementById('chart' + i);
+        if (!ctx) continue;
+        charts[i] = new Chart(ctx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: 'Voltage (V)',
+                data: [],
+                borderWidth: 2,
+                tension: 0.2
+              },
+              {
+                label: 'Current (A)',
+                data: [],
+                borderWidth: 2,
+                tension: 0.2
+              }
+            ]
+          },
+          options: {
+            animation: false,
+            responsive: true,
+            plugins: {
+              legend: { display: true, labels: { color: '#eee' } }
+            },
+            scales: {
+              x: {
+                ticks: { color: '#ccc' },
+              },
+              y: {
+                ticks: { color: '#ccc' },
+              }
+            }
+          }
+        });
+
+        // initial mock state
+        mockData[i] = {
+          voltage: 12 + Math.random() * 8,   // 12–20 V
+          current: Math.random() * 12,       // 0–12 A
+          energy: 0,
+          dustPercent: Math.random() * 40    // 0–40 %
+        };
+      }
+    }
+
+    function addPoint(id, v, c) {
+      const chart = charts[id];
+      if (!chart) return;
+      const now = new Date().toLocaleTimeString();
+      const data = chart.data;
+      data.labels.push(now);
+      data.datasets[0].data.push(v);
+      data.datasets[1].data.push(c);
+      if (data.labels.length > MAX_POINTS) {
+        data.labels.shift();
+        data.datasets[0].data.shift();
+        data.datasets[1].data.shift();
+      }
+      chart.update('none');
+    }
+
+    // Same idea as your Version 3: fixed 10 A threshold
+    function applyLowCurrentAlarm(id, current) {
+      const panel = document.getElementById('panel' + id);
+      if (!panel) return;
+
+      const threshold = FIXED_CURRENT_THRESHOLD;
+
+      if (typeof current === 'number' && current < threshold) {
+        panel.classList.add('low-current');
+      } else {
+        panel.classList.remove('low-current');
+      }
+    }
+
+    // --- Mock "WebSocket" updater (simulates /data + broadcast) ---
+    function mockUpdateAllNodes() {
+      for (let i = 0; i < NODE_COUNT; i++) {
+        const dot   = document.getElementById('status' + i);
+        const panel = document.getElementById('panel' + i);
+        if (!dot || !panel) continue;
+
+        // Randomly decide if node is online (90% chance)
+        const online = Math.random() < 0.9;
+
+        if (!online) {
+          dot.classList.remove('online');
+          dot.classList.add('offline');
+
+          document.getElementById('v' + i).textContent = "--";
+          document.getElementById('c' + i).textContent = "--";
+          document.getElementById('p' + i).textContent = "--";
+          document.getElementById('e' + i).textContent = "--";
+          document.getElementById('d' + i).textContent = "--";
+          applyLowCurrentAlarm(i, NaN);
+          continue;
+        }
+
+        dot.classList.add('online');
+        dot.classList.remove('offline');
+
+        // Smooth random walk for voltage/current
+        let m = mockData[i];
+        m.voltage += (Math.random() - 0.5) * 0.5;
+        m.current += (Math.random() - 0.5) * 1.0;
+        if (m.voltage < 10) m.voltage = 10;
+        if (m.voltage > 24) m.voltage = 24;
+        if (m.current < 0)  m.current = 0;
+        if (m.current > 15) m.current = 15;
+
+        // Power and energy
+        const power = m.voltage * m.current;
+        // assume mockUpdateAllNodes runs every 2s → Wh increment
+        m.energy += power * (2 / 3600); // P(W)*t(h)
+
+        // Dust changes slowly
+        m.dustPercent += (Math.random() - 0.5) * 0.5;
+        if (m.dustPercent < 0)  m.dustPercent = 0;
+        if (m.dustPercent > 100) m.dustPercent = 100;
+
+        // Update DOM
+        document.getElementById('v' + i).textContent = m.voltage.toFixed(1);
+        document.getElementById('c' + i).textContent = m.current.toFixed(3);
+        document.getElementById('p' + i).textContent = power.toFixed(1);
+        document.getElementById('e' + i).textContent = m.energy.toFixed(1);
+        document.getElementById('d' + i).textContent = m.dustPercent.toFixed(1);
+
+        applyLowCurrentAlarm(i, m.current);
+        addPoint(i, m.voltage, m.current);
+      }
+    }
+
+    // --- Mock button handlers (no real backend) ---
+    function mockPingNode(id) {
+      setStatus("Mock ping: CH " + (id + 1) + " (" + nodes[id].name + ")");
+      setTimeout(() => setStatus("Status: Mock running (no ESP32 needed)"), 1000);
+    }
+
+    function mockFetchOnce(id) {
+      setStatus("Mock fetch: CH " + (id + 1) + " (" + nodes[id].name + ")");
+      // Just do one immediate update
+      mockUpdateAllNodes();
+      setTimeout(() => setStatus("Status: Mock running (no ESP32 needed)"), 1000);
+    }
+
+    function mockDeleteNode(id) {
+      const panel = document.getElementById('panel' + id);
+      if (!panel) return;
+      if (!confirm("Mock delete CH " + (id + 1) + "? (UI only)")) return;
+      panel.style.display = "none";
+      setStatus("Mock: Channel " + (id + 1) + " hidden");
+    }
+
+    window.onload = function() {
+      buildGrid();
+      initCharts();
+      setStatus("Mock running – simulating data every 2 seconds");
+      mockUpdateAllNodes();
+      setInterval(mockUpdateAllNodes, 2000); // 2s ≈ similar feel to 5s polling
+    };
+  </script>
+</body>
+</html>
