@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>ESP32 PV NVR Monitor – Mock v8</title>
+  <title>ESP32 PV NVR Monitor – Mock v10</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -14,52 +14,11 @@
     }
     h1 {
       text-align: center;
-      margin-bottom: 0.2em;
     }
     .sub {
       text-align: center;
       font-size: 0.9em;
-      margin-bottom: 10px;
       color: #aaa;
-    }
-    .top-card {
-      max-width: 900px;
-      margin: 0 auto 10px auto;
-      padding: 10px;
-      background: #222;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
-    }
-    .top-card form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-      justify-content: center;
-    }
-    input, button {
-      padding: 8px;
-      border-radius: 5px;
-      border: none;
-      font-size: 0.9em;
-    }
-    input {
-      background: #333;
-      color: #eee;
-    }
-    button {
-      background: #0a84ff;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0c97ff;
-    }
-    #status {
-      text-align: center;
-      font-size: 0.85em;
-      margin-top: 6px;
-      color: #ccc;
     }
     .grid {
       display: grid;
@@ -72,346 +31,177 @@
       border-radius: 10px;
       padding: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.7);
-      transition: background 0.2s, border 0.2s;
+      transition: 0.3s;
     }
     .panel-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
       margin-bottom: 6px;
-      font-size: 0.9em;
-    }
-    .left-head {
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
     .dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      display: inline-block;
       background: #555;
     }
     .dot.online {
-      background: #0f0;
+      background: #00ff00;
     }
     .dot.offline {
-      background: #f00;
-    }
-    .panel-body {
-      font-size: 0.9em;
-      margin-bottom: 6px;
-    }
-    .panel.low-current {
-      background: #401010;        /* darker red panel */
-      border: 1px solid #f00;     /* red border highlight */
-    }
-    .value {
-      font-size: 1.4em;
-      font-weight: bold;
-    }
-    .unit {
-      font-size: 0.8em;
-      color: #ccc;
-    }
-    .row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 2px;
-    }
-    .btn-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 4px;
-      margin-top: 4px;
+      background: #ff0000;
     }
     .btn-small {
-      flex: 1;
-      font-size: 0.75em;
       padding: 5px;
+      font-size: 0.75em;
       background: #333;
+      border: none;
+      border-radius: 5px;
+      color: #eee;
+      cursor: pointer;
     }
     .btn-small:hover {
       background: #444;
     }
+    .panel.lowest-power {
+      background: #400000 !important;
+      border: 1px solid #ff0000 !important;
+    }
+    .panel.highest-power {
+      background: #001a4d !important;
+      border: 1px solid #3399ff !important;
+    }
     canvas {
-      width: 100% !important;
+      width: 100%;
       max-height: 160px;
     }
-
-    /* Colored metric values */
-    .val-red    { color: #ff4d4d; }   /* Voltage */
-    .val-blue   { color: #4da6ff; }   /* Current */
-    .val-green  { color: #00ff00; }   /* Power */
-    .val-orange { color: #ffa500; }   /* Energy */
-    .val-purple { color: #c266ff; }   /* Dust */
   </style>
 </head>
 <body>
-  <h1>PV Multi-Node Monitor (Mock v8)</h1>
-  <div class="sub">Preview UI · Same layout concept as ESP32 Main Server</div>
+  <h1>PV Multi-Node Monitor (Mock v10)</h1>
+  <div class="sub">ESP32 Main Server · 10 Sensors · Power Ranking Color Mode</div>
 
-  <div class="top-card">
-    <!-- Mock of your Add Node form (non-functional here) -->
-    <form onsubmit="event.preventDefault(); alert('Mock only – real add happens on ESP32');">
-      <input type="text" name="ip" placeholder="PV IP address" />
-      <button type="submit">Add Node</button>
-    </form>
-    <div id="status">Status: Mock running (no ESP32 needed)</div>
+  <div class="grid">
+    <script>
+      const NODE_COUNT = 10;
+      for (let i = 0; i < NODE_COUNT; i++) {
+        document.write(`
+          <div class="panel" id="panel${i}">
+            <div class="panel-header">
+              <div class="left-head">
+                <span class="dot offline" id="status${i}"></span>
+                <span>CH ${i + 1}</span>
+              </div>
+              <div style="font-size:0.8em;color:#aaa;">192.168.1.${50 + i}</div>
+            </div>
+
+            <div class="row"><span>Voltage</span>
+              <span class="value"><span id="v${i}">--</span> V</span></div>
+
+            <div class="row"><span>Current</span>
+              <span class="value"><span id="c${i}">--</span> A</span></div>
+
+            <div class="row"><span>Power</span>
+              <span class="value"><span id="p${i}">--</span> W</span></div>
+
+            <div class="row"><span>Energy</span>
+              <span class="value"><span id="e${i}">--</span> Wh</span></div>
+
+            <div class="row"><span>Dust</span>
+              <span class="value"><span id="d${i}">--</span> %</span></div>
+
+            <div class="btn-row" style="margin-top:5px; display:flex; gap:5px;">
+              <button class="btn-small">Ping</button>
+              <button class="btn-small">Fetch</button>
+            </div>
+
+            <canvas id="chart${i}"></canvas>
+          </div>
+        `);
+      }
+    </script>
   </div>
-
-  <div class="grid" id="grid"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // --- Mock node metadata (10 fixed channels, CH1–CH10) ---
-    const nodes = [
-      { ip: "192.168.1.101" },
-      { ip: "192.168.1.102" },
-      { ip: "192.168.1.103" },
-      { ip: "192.168.1.104" },
-      { ip: "192.168.1.105" },
-      { ip: "192.168.1.106" },
-      { ip: "192.168.1.107" },
-      { ip: "192.168.1.108" },
-      { ip: "192.168.1.109" },
-      { ip: "192.168.1.110" }
-    ];
-    const NODE_COUNT = nodes.length;
-    const MAX_POINTS = 60;
-    const FIXED_CURRENT_THRESHOLD = 10.0; // amps, like your main ESP32 (fixed 10A alarm)
-
     let charts = [];
-    let mockData = [];
-
-    function setStatus(msg) {
-      document.getElementById('status').textContent = "Status: " + msg;
-    }
-
-    // Build the grid panels similar to ESP32 output
-    function buildGrid() {
-      const grid = document.getElementById('grid');
-      grid.innerHTML = "";
-
-      nodes.forEach((node, i) => {
-        const panel = document.createElement('div');
-        panel.className = "panel";
-        panel.id = "panel" + i;
-
-        panel.innerHTML = `
-          <div class="panel-header">
-            <div class="left-head">
-              <span class="dot online" id="status${i}"></span>
-              <span>CH ${i + 1}</span>
-            </div>
-            <div style="font-size:0.8em;color:#aaa;">${node.ip}</div>
-          </div>
-
-          <div class="panel-body">
-            <div class="row"><span>Voltage</span>
-              <span class="value val-red"><span id="v${i}">--</span> <span class="unit">V</span></span>
-            </div>
-            <div class="row"><span>Current</span>
-              <span class="value val-blue"><span id="c${i}">--</span> <span class="unit">A</span></span>
-            </div>
-            <div class="row"><span>Power</span>
-              <span class="value val-green"><span id="p${i}">--</span> <span class="unit">W</span></span>
-            </div>
-            <div class="row"><span>Energy</span>
-              <span class="value val-orange"><span id="e${i}">--</span> <span class="unit">Wh</span></span>
-            </div>
-            <div class="row"><span>Dust</span>
-              <span class="value val-purple"><span id="d${i}">--</span> <span class="unit">%</span></span>
-            </div>
-
-            <div class="btn-row">
-              <button class="btn-small" onclick="mockPingNode(${i})">Ping</button>
-              <button class="btn-small" onclick="mockFetchOnce(${i})">Fetch Now</button>
-              <button class="btn-small" onclick="mockDeleteNode(${i})">Delete</button>
-            </div>
-          </div>
-
-          <canvas id="chart${i}"></canvas>
-        `;
-        grid.appendChild(panel);
-      });
-    }
 
     function initCharts() {
-      charts = [];
-      mockData = [];
       for (let i = 0; i < NODE_COUNT; i++) {
-        const ctx = document.getElementById('chart' + i);
-        if (!ctx) continue;
-        charts[i] = new Chart(ctx.getContext('2d'), {
-          type: 'line',
+        const ctx = document.getElementById("chart" + i).getContext("2d");
+        charts[i] = new Chart(ctx, {
+          type: "line",
           data: {
             labels: [],
             datasets: [
               {
-                label: 'Power (W)',
+                label: "Power (W)",
                 data: [],
                 borderWidth: 2,
                 tension: 0.2,
-                borderColor: '#00ff00',                 // GREEN power line
-                backgroundColor: 'rgba(0,255,0,0.25)'   // light green fill
+                borderColor: "#00ff00"
               }
             ]
           },
           options: {
             animation: false,
             responsive: true,
-            plugins: {
-              legend: { display: true, labels: { color: '#eee' } }
-            },
             scales: {
-              x: {
-                display: false   // hide time labels on X axis
-              },
-              y: {
-                min: 0,
-                max: 1,          // start at 1W, will auto-expand with peak power
-                ticks: { color: '#ccc' }
-              }
+              y: { min: 0, max: 1 }
             }
           }
         });
-
-        // initial mock state
-        mockData[i] = {
-          voltage: 12 + Math.random() * 8,   // 12–20 V
-          current: Math.random() * 12,       // 0–12 A
-          energy: 0,
-          dustPercent: Math.random() * 40    // 0–40 %
-        };
       }
     }
 
-    function addPoint(id, power) {
-      const chart = charts[id];
-      if (!chart) return;
-
-      const data = chart.data;
-      data.labels.push("");  // no X-axis text
-      data.datasets[0].data.push(power);
-
-      if (data.labels.length > MAX_POINTS) {
-        data.labels.shift();
-        data.datasets[0].data.shift();
+    function applyPowerRankingColors() {
+      let powers = [];
+      for (let i = 0; i < NODE_COUNT; i++) {
+        const p = parseFloat(document.getElementById("p" + i).textContent);
+        if (!isNaN(p)) powers.push({ id: i, power: p });
       }
-
-      // auto-scale Y axis up to peak power (with 10% headroom)
-      const yScale = chart.options.scales.y;
-      if (typeof yScale.min !== 'number') {
-        yScale.min = 0;
+      if (powers.length === 0) return;
+      let lowest = powers.reduce((a, b) => (a.power < b.power ? a : b));
+      let highest = powers.reduce((a, b) => (a.power > b.power ? a : b));
+      for (let i = 0; i < NODE_COUNT; i++) {
+        let panel = document.getElementById("panel" + i);
+        panel.classList.remove("lowest-power");
+        panel.classList.remove("highest-power");
       }
-      if (typeof yScale.max !== 'number' || power * 1.1 > yScale.max) {
-        yScale.max = power * 1.1;
-      }
-
-      chart.update('none');
+      document.getElementById("panel" + lowest.id).classList.add("lowest-power");
+      document.getElementById("panel" + highest.id).classList.add("highest-power");
     }
 
-    // Same idea as main ESP32: fixed 10 A threshold
-    function applyLowCurrentAlarm(id, current) {
-      const panel = document.getElementById('panel' + id);
-      if (!panel) return;
-
-      const threshold = FIXED_CURRENT_THRESHOLD;
-
-      if (typeof current === 'number' && current < threshold) {
-        panel.classList.add('low-current');
-      } else {
-        panel.classList.remove('low-current');
-      }
-    }
-
-    // --- Mock "WebSocket" updater (simulates /data + broadcast) ---
     function mockUpdateAllNodes() {
       for (let i = 0; i < NODE_COUNT; i++) {
-        const dot   = document.getElementById('status' + i);
-        const panel = document.getElementById('panel' + i);
-        if (!dot || !panel) continue;
+        let v = Math.random() * 60;
+        let c = Math.random() * 10;
+        let p = v * c;
+        let e = Math.random() * 500;
+        let d = Math.random() * 100;
 
-        // Randomly decide if node is online (90% chance)
-        const online = Math.random() < 0.9;
+        document.getElementById("v" + i).textContent = v.toFixed(1);
+        document.getElementById("c" + i).textContent = c.toFixed(2);
+        document.getElementById("p" + i).textContent = p.toFixed(1);
+        document.getElementById("e" + i).textContent = e.toFixed(1);
+        document.getElementById("d" + i).textContent = d.toFixed(1);
 
-        if (!online) {
-          dot.classList.remove('online');
-          dot.classList.add('offline');
+        charts[i].data.labels.push("");
+        charts[i].data.datasets[0].data.push(p);
 
-          document.getElementById('v' + i).textContent = "--";
-          document.getElementById('c' + i).textContent = "--";
-          document.getElementById('p' + i).textContent = "--";
-          document.getElementById('e' + i).textContent = "--";
-          document.getElementById('d' + i).textContent = "--";
-          applyLowCurrentAlarm(i, NaN);
-          continue;
+        if (charts[i].data.labels.length > 20) {
+          charts[i].data.labels.shift();
+          charts[i].data.datasets[0].data.shift();
         }
+        charts[i].update("none");
 
-        dot.classList.add('online');
-        dot.classList.remove('offline');
-
-        // Smooth random walk for voltage/current
-        let m = mockData[i];
-        m.voltage += (Math.random() - 0.5) * 0.5;
-        m.current += (Math.random() - 0.5) * 1.0;
-        if (m.voltage < 10) m.voltage = 10;
-        if (m.voltage > 24) m.voltage = 24;
-        if (m.current < 0)  m.current = 0;
-        if (m.current > 15) m.current = 15;
-
-        // Power and energy
-        const power = m.voltage * m.current;
-        // assume mockUpdateAllNodes runs every 2s → Wh increment
-        m.energy += power * (2 / 3600); // P(W)*t(h)
-
-        // Dust changes slowly
-        m.dustPercent += (Math.random() - 0.5) * 0.5;
-        if (m.dustPercent < 0)   m.dustPercent = 0;
-        if (m.dustPercent > 100) m.dustPercent = 100;
-
-        // Update DOM
-        document.getElementById('v' + i).textContent = m.voltage.toFixed(1);
-        document.getElementById('c' + i).textContent = m.current.toFixed(3);
-        document.getElementById('p' + i).textContent = power.toFixed(1);
-        document.getElementById('e' + i).textContent = m.energy.toFixed(1);
-        document.getElementById('d' + i).textContent = m.dustPercent.toFixed(1);
-
-        applyLowCurrentAlarm(i, m.current);
-        addPoint(i, power);
+        document.getElementById("status" + i).classList.remove("offline");
+        document.getElementById("status" + i).classList.add("online");
       }
+      applyPowerRankingColors();
     }
 
-    // --- Mock button handlers (no real backend) ---
-    function mockPingNode(id) {
-      setStatus("Mock ping: CH " + (id + 1));
-      setTimeout(() => setStatus("Status: Mock running (no ESP32 needed)"), 1000);
-    }
-
-    function mockFetchOnce(id) {
-      setStatus("Mock fetch: CH " + (id + 1));
-      // Just do one immediate update
-      mockUpdateAllNodes();
-      setTimeout(() => setStatus("Status: Mock running (no ESP32 needed)"), 1000);
-    }
-
-    function mockDeleteNode(id) {
-      const panel = document.getElementById('panel' + id);
-      if (!panel) return;
-      if (!confirm("Mock delete CH " + (id + 1) + "? (UI only)")) return;
-      panel.style.display = "none";
-      setStatus("Mock: Channel " + (id + 1) + " hidden");
-    }
-
-    window.onload = function() {
-      buildGrid();
-      initCharts();
-      setStatus("Mock running – simulating data every 2 seconds");
-      mockUpdateAllNodes();
-      setInterval(mockUpdateAllNodes, 2000); // 2s update
-    };
+    initCharts();
+    setInterval(mockUpdateAllNodes, 2000);
   </script>
 </body>
 </html>
