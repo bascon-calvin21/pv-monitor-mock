@@ -148,7 +148,6 @@
   <div class="top-card">
     <!-- Mock of your Add Node form (non-functional here) -->
     <form onsubmit="event.preventDefault(); alert('Mock only – real add happens on ESP32');">
-      <input type="text" name="name" placeholder="PV Name (e.g. Panel 1)" />
       <input type="text" name="ip" placeholder="PV IP address" />
       <button type="submit">Add Node</button>
     </form>
@@ -161,17 +160,17 @@
   <script>
     // --- Mock node metadata (10 panels) ---
     const nodes = [
-      { name: "Roof PV Array 1",  ip: "192.168.1.101" },
-      { name: "Roof PV Array 2",  ip: "192.168.1.102" },
-      { name: "Roof PV Array 3",  ip: "192.168.1.103" },
-      { name: "Garage PV 1",      ip: "192.168.1.104" },
-      { name: "Garage PV 2",      ip: "192.168.1.105" },
-      { name: "Ground Mount 1",   ip: "192.168.1.106" },
-      { name: "Ground Mount 2",   ip: "192.168.1.107" },
-      { name: "Spare Channel 1",  ip: "192.168.1.108" },
-      { name: "Spare Channel 2",  ip: "192.168.1.109" },
-      { name: "Spare Channel 3",  ip: "192.168.1.110" }
-    ];
+  { ip: "192.168.1.101" },
+  { ip: "192.168.1.102" },
+  { ip: "192.168.1.103" },
+  { ip: "192.168.1.104" },
+  { ip: "192.168.1.105" },
+  { ip: "192.168.1.106" },
+  { ip: "192.168.1.107" },
+  { ip: "192.168.1.108" },
+  { ip: "192.168.1.109" },
+  { ip: "192.168.1.110" }
+];
     const NODE_COUNT = nodes.length;
     const MAX_POINTS = 60;
     const FIXED_CURRENT_THRESHOLD = 10.0; // amps, like Version 3 (fixed 10A alarm)
@@ -197,7 +196,7 @@
           <div class="panel-header">
             <div class="left-head">
               <span class="dot online" id="status${i}"></span>
-              <span>CH ${i + 1} · ${node.name}</span>
+              <span>CH ${i + 1}</span>
             </div>
             <div style="font-size:0.8em;color:#aaa;">${node.ip}</div>
           </div>
@@ -378,7 +377,7 @@
 
     // --- Mock button handlers (no real backend) ---
     function mockPingNode(id) {
-      setStatus("Mock ping: CH " + (id + 1) + " (" + nodes[id].name + ")");
+      setStatus("Mock ping: CH " + (id + 1) + ")");
       setTimeout(() => setStatus("Status: Mock running (no ESP32 needed)"), 1000);
     }
 
