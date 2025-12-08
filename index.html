@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>ESP32 PV NVR Monitor - Mock3</title>
+  <title>ESP32 PV NVR Monitor – Mock v8</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -139,10 +139,17 @@
       width: 100% !important;
       max-height: 160px;
     }
+
+    /* Colored metric values */
+    .val-red    { color: #ff4d4d; }   /* Voltage */
+    .val-blue   { color: #4da6ff; }   /* Current */
+    .val-green  { color: #00ff00; }   /* Power */
+    .val-orange { color: #ffa500; }   /* Energy */
+    .val-purple { color: #c266ff; }   /* Dust */
   </style>
 </head>
 <body>
-  <h1>PV Multi-Node Monitor (Mock123)</h1>
+  <h1>PV Multi-Node Monitor (Mock v8)</h1>
   <div class="sub">Preview UI · Same layout concept as ESP32 Main Server</div>
 
   <div class="top-card">
@@ -158,22 +165,22 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // --- Mock node metadata (10 panels) ---
+    // --- Mock node metadata (10 fixed channels, CH1–CH10) ---
     const nodes = [
-  { ip: "192.168.1.101" },
-  { ip: "192.168.1.102" },
-  { ip: "192.168.1.103" },
-  { ip: "192.168.1.104" },
-  { ip: "192.168.1.105" },
-  { ip: "192.168.1.106" },
-  { ip: "192.168.1.107" },
-  { ip: "192.168.1.108" },
-  { ip: "192.168.1.109" },
-  { ip: "192.168.1.110" }
-];
+      { ip: "192.168.1.101" },
+      { ip: "192.168.1.102" },
+      { ip: "192.168.1.103" },
+      { ip: "192.168.1.104" },
+      { ip: "192.168.1.105" },
+      { ip: "192.168.1.106" },
+      { ip: "192.168.1.107" },
+      { ip: "192.168.1.108" },
+      { ip: "192.168.1.109" },
+      { ip: "192.168.1.110" }
+    ];
     const NODE_COUNT = nodes.length;
     const MAX_POINTS = 60;
-    const FIXED_CURRENT_THRESHOLD = 10.0; // amps, like Version 3 (fixed 10A alarm)
+    const FIXED_CURRENT_THRESHOLD = 10.0; // amps, like your main ESP32 (fixed 10A alarm)
 
     let charts = [];
     let mockData = [];
@@ -203,19 +210,19 @@
 
           <div class="panel-body">
             <div class="row"><span>Voltage</span>
-              <span class="value"><span id="v${i}">--</span> <span class="unit">V</span></span>
+              <span class="value val-red"><span id="v${i}">--</span> <span class="unit">V</span></span>
             </div>
             <div class="row"><span>Current</span>
-              <span class="value"><span id="c${i}">--</span> <span class="unit">A</span></span>
+              <span class="value val-blue"><span id="c${i}">--</span> <span class="unit">A</span></span>
             </div>
             <div class="row"><span>Power</span>
-              <span class="value"><span id="p${i}">--</span> <span class="unit">W</span></span>
+              <span class="value val-green"><span id="p${i}">--</span> <span class="unit">W</span></span>
             </div>
             <div class="row"><span>Energy</span>
-              <span class="value"><span id="e${i}">--</span> <span class="unit">Wh</span></span>
+              <span class="value val-orange"><span id="e${i}">--</span> <span class="unit">Wh</span></span>
             </div>
             <div class="row"><span>Dust</span>
-              <span class="value"><span id="d${i}">--</span> <span class="unit">%</span></span>
+              <span class="value val-purple"><span id="d${i}">--</span> <span class="unit">%</span></span>
             </div>
 
             <div class="btn-row">
@@ -246,7 +253,9 @@
                 label: 'Power (W)',
                 data: [],
                 borderWidth: 2,
-                tension: 0.2
+                tension: 0.2,
+                borderColor: '#00ff00',                 // GREEN power line
+                backgroundColor: 'rgba(0,255,0,0.25)'   // light green fill
               }
             ]
           },
@@ -262,7 +271,7 @@
               },
               y: {
                 min: 0,
-                max: 1,       // initial range, will auto-expand with peak power
+                max: 1,          // start at 1W, will auto-expand with peak power
                 ticks: { color: '#ccc' }
               }
             }
@@ -294,17 +303,17 @@
 
       // auto-scale Y axis up to peak power (with 10% headroom)
       const yScale = chart.options.scales.y;
-      if (!yScale.min || yScale.min !== 0) {
+      if (typeof yScale.min !== 'number') {
         yScale.min = 0;
       }
-      if (!yScale.max || power * 1.1 > yScale.max) {
+      if (typeof yScale.max !== 'number' || power * 1.1 > yScale.max) {
         yScale.max = power * 1.1;
       }
 
       chart.update('none');
     }
 
-    // Same idea as Version 3: fixed 10 A threshold
+    // Same idea as main ESP32: fixed 10 A threshold
     function applyLowCurrentAlarm(id, current) {
       const panel = document.getElementById('panel' + id);
       if (!panel) return;
@@ -377,12 +386,12 @@
 
     // --- Mock button handlers (no real backend) ---
     function mockPingNode(id) {
-      setStatus("Mock ping: CH " + (id + 1) + ")");
+      setStatus("Mock ping: CH " + (id + 1));
       setTimeout(() => setStatus("Status: Mock running (no ESP32 needed)"), 1000);
     }
 
     function mockFetchOnce(id) {
-      setStatus("Mock fetch: CH " + (id + 1) + " (" + nodes[id].name + ")");
+      setStatus("Mock fetch: CH " + (id + 1));
       // Just do one immediate update
       mockUpdateAllNodes();
       setTimeout(() => setStatus("Status: Mock running (no ESP32 needed)"), 1000);
