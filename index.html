@@ -142,7 +142,7 @@
   </style>
 </head>
 <body>
-  <h1>PV Multi-Node Monitor (Mock3)</h1>
+  <h1>PV Multi-Node Monitor (Mock)</h1>
   <div class="sub">Preview UI · Same layout concept as ESP32 Main Server</div>
 
   <div class="top-card">
@@ -244,13 +244,7 @@
             labels: [],
             datasets: [
               {
-                label: 'Voltage (%)',
-                data: [],
-                borderWidth: 2,
-                tension: 0.2
-              },
-              {
-                label: 'Current (%)',
+                label: 'Power (W)',
                 data: [],
                 borderWidth: 2,
                 tension: 0.2
@@ -269,8 +263,8 @@
               },
               y: {
                 min: 0,
-                max: 100,
-                ticks: { color: '#ccc', stepSize: 20 }
+                max: 1000,       // initial range, will auto-expand with peak power
+                ticks: { color: '#ccc' }
               }
             }
           }
@@ -286,30 +280,28 @@
       }
     }
 
-    function addPoint(id, v, c) {
+    function addPoint(id, power) {
       const chart = charts[id];
       if (!chart) return;
 
-      // Convert to percentage for chart only
-      // 0 V = 0%, 60 V = 100%
-      let vPct = (v / 60.0) * 100.0;
-      // 0 A = 0%, 10 A = 100%
-      let cPct = (c / 10.0) * 100.0;
-
-      // Clamp 0–100
-      vPct = Math.max(0, Math.min(100, vPct));
-      cPct = Math.max(0, Math.min(100, cPct));
-
       const data = chart.data;
       data.labels.push("");  // no X-axis text
-      data.datasets[0].data.push(vPct);
-      data.datasets[1].data.push(cPct);
+      data.datasets[0].data.push(power);
 
       if (data.labels.length > MAX_POINTS) {
         data.labels.shift();
         data.datasets[0].data.shift();
-        data.datasets[1].data.shift();
       }
+
+      // auto-scale Y axis up to peak power (with 10% headroom)
+      const yScale = chart.options.scales.y;
+      if (!yScale.min || yScale.min !== 0) {
+        yScale.min = 0;
+      }
+      if (!yScale.max || power * 1.1 > yScale.max) {
+        yScale.max = power * 1.1;
+      }
+
       chart.update('none');
     }
 
@@ -380,7 +372,7 @@
         document.getElementById('d' + i).textContent = m.dustPercent.toFixed(1);
 
         applyLowCurrentAlarm(i, m.current);
-        addPoint(i, m.voltage, m.current);
+        addPoint(i, power);
       }
     }
 
