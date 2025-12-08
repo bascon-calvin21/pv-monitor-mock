@@ -104,7 +104,7 @@
       margin-bottom: 6px;
     }
     .value {
-      font-size: 1.4em;
+      font-size: 1.2em;
       font-weight: bold;
     }
     .unit {
@@ -114,7 +114,17 @@
     .row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 2px;
+      align-items: center;
+      margin-bottom: 4px;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .row .col {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
     }
     .btn-row {
       display: flex;
@@ -205,20 +215,46 @@
           </div>
 
           <div class="panel-body">
-            <div class="row"><span>Voltage</span>
-              <span class="value"><span id="v${i}">--</span> <span class="unit">V</span></span>
+            <div class="row">
+              <span>Power</span>
+              <span class="value">
+                <span id="p${i}">--</span>
+                <span class="unit">W</span>
+              </span>
             </div>
-            <div class="row"><span>Current</span>
-              <span class="value"><span id="c${i}">--</span> <span class="unit">A</span></span>
+
+            <div class="row">
+              <div class="col">
+                <span>Voltage</span>
+                <span class="value">
+                  <span id="v${i}">--</span>
+                  <span class="unit">V</span>
+                </span>
+              </div>
+              <div class="col">
+                <span>Current</span>
+                <span class="value">
+                  <span id="c${i}">--</span>
+                  <span class="unit">A</span>
+                </span>
+              </div>
             </div>
-            <div class="row"><span>Power</span>
-              <span class="value"><span id="p${i}">--</span> <span class="unit">W</span></span>
-            </div>
-            <div class="row"><span>Energy</span>
-              <span class="value"><span id="e${i}">--</span> <span class="unit">Wh</span></span>
-            </div>
-            <div class="row"><span>Dust</span>
-              <span class="value"><span id="d${i}">--</span> <span class="unit">%</span></span>
+
+            <div class="row">
+              <div class="col">
+                <span>Energy</span>
+                <span class="value">
+                  <span id="e${i}">--</span>
+                  <span class="unit">Wh</span>
+                </span>
+              </div>
+              <div class="col">
+                <span>Dust</span>
+                <span class="value">
+                  <span id="d${i}">--</span>
+                  <span class="unit">%</span>
+                </span>
+              </div>
             </div>
 
             <div class="btn-row">
