@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>ESP32 PV NVR Monitor – Mock v11</title>
+  <title>ESP32 PV NVR Monitor – Mock v13</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -177,8 +177,8 @@
   </style>
 </head>
 <body>
-  <h1>PV Multi-Node Monitor (Mock v11)</h1>
-  <div class="sub">Preview UI · Same layout concept as ESP32 Main Server</div>
+  <h1>PV Multi-Node Monitor (Mock v13)</h1>
+  <div class="sub">Preview UI · Bar charts for daily power & dust stats</div>
 
   <div class="top-card">
     <form onsubmit="event.preventDefault(); alert('Mock only – real add happens on ESP32');">
@@ -205,7 +205,6 @@
       { ip: "192.168.1.110" }
     ];
     const NODE_COUNT = nodes.length;
-    const MAX_POINTS = 10;
 
     let charts = [];
     let mockData = [];
@@ -294,17 +293,19 @@
         const ctx = document.getElementById('chart' + i);
         if (!ctx) continue;
         charts[i] = new Chart(ctx.getContext('2d'), {
-          type: 'line',
+          type: 'bar',
           data: {
-            labels: [],
+            labels: ['Lower', 'Average', 'Higher'],
             datasets: [
               {
                 label: 'Power (W)',
-                data: [],
-                borderWidth: 2,
-                tension: 0.2,
-                borderColor: '#00ff00',
-                backgroundColor: 'rgba(0,255,0,0.25)'
+                data: [0, 0, 0],
+                backgroundColor: 'rgba(0,255,0,0.6)'
+              },
+              {
+                label: 'Dust (%)',
+                data: [0, 0, 0],
+                backgroundColor: 'rgba(128,0,128,0.6)'
               }
             ]
           },
@@ -316,11 +317,11 @@
             },
             scales: {
               x: {
-                display: false
+                ticks: { color: '#ccc' },
+                stacked: false
               },
               y: {
-                min: 0,
-                max: 1,
+                beginAtZero: true,
                 ticks: { color: '#ccc' }
               }
             }
@@ -331,31 +332,35 @@
           voltage: 12 + Math.random() * 8,
           current: Math.random() * 12,
           energy: 0,
-          dustPercent: Math.random() * 40
+          dustPercent: Math.random() * 40,
+          minPower: Infinity,
+          maxPower: 0,
+          sumPower: 0,
+          countPower: 0,
+          minDust: Infinity,
+          maxDust: 0,
+          sumDust: 0,
+          countDust: 0
         };
       }
     }
 
-    function addPoint(id, power) {
+    function updateBarChart(id) {
       const chart = charts[id];
       if (!chart) return;
 
-      const data = chart.data;
-      data.labels.push("");
-      data.datasets[0].data.push(power);
+      const m = mockData[id];
 
-      if (data.labels.length > MAX_POINTS) {
-        data.labels.shift();
-        data.datasets[0].data.shift();
-      }
+      const pMin = isFinite(m.minPower) ? m.minPower : 0;
+      const pAvg = m.countPower > 0 ? (m.sumPower / m.countPower) : 0;
+      const pMax = m.maxPower;
 
-      const yScale = chart.options.scales.y;
-      if (typeof yScale.min !== 'number') {
-        yScale.min = 0;
-      }
-      if (typeof yScale.max !== 'number' || power * 1.1 > yScale.max) {
-        yScale.max = power * 1.1;
-      }
+      const dMin = isFinite(m.minDust) ? m.minDust : 0;
+      const dAvg = m.countDust > 0 ? (m.sumDust / m.countDust) : 0;
+      const dMax = m.maxDust;
+
+      chart.data.datasets[0].data = [pMin, pAvg, pMax];
+      chart.data.datasets[1].data = [dMin, dAvg, dMax];
 
       chart.update('none');
     }
@@ -414,7 +419,7 @@
         if (m.current > 15) m.current = 15;
 
         const power = m.voltage * m.current;
-        m.energy += power * (2 / 3600);
+        m.energy += power * (60 / 3600);
         m.dustPercent += (Math.random() - 0.5) * 0.5;
         if (m.dustPercent < 0) m.dustPercent = 0;
         if (m.dustPercent > 100) m.dustPercent = 100;
@@ -425,7 +430,17 @@
         document.getElementById('e' + i).textContent = m.energy.toFixed(1);
         document.getElementById('d' + i).textContent = m.dustPercent.toFixed(1);
 
-        addPoint(i, power);
+        if (power < m.minPower) m.minPower = power;
+        if (power > m.maxPower) m.maxPower = power;
+        m.sumPower += power;
+        m.countPower += 1;
+
+        if (m.dustPercent < m.minDust) m.minDust = m.dustPercent;
+        if (m.dustPercent > m.maxDust) m.maxDust = m.dustPercent;
+        m.sumDust += m.dustPercent;
+        m.countDust += 1;
+
+        updateBarChart(i);
       }
 
       applyPowerRankingColors();
@@ -453,7 +468,7 @@
     window.onload = function() {
       buildGrid();
       initCharts();
-      setStatus("Mock running – simulating data every 2 seconds");
+      setStatus("Mock running – simulating data every 60 seconds");
       mockUpdateAllNodes();
       setInterval(mockUpdateAllNodes, 60000);
     };
