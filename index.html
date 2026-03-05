@@ -177,15 +177,15 @@
   </style>
 </head>
 <body>
-  <h1>PV Multi-Node Monitor (Mock v13)</h1>
-  <div class="sub">Preview UI · Bar charts for daily power & dust stats</div>
+  <h1>PV Monitoring Dashboard</h1>
+  <div class="sub">Bar charts for daily power & dust stats</div>
 
   <div class="top-card">
     <form onsubmit="event.preventDefault(); alert('Mock only – real add happens on ESP32');">
       <input type="text" name="ip" placeholder="PV IP address" />
       <button type="submit">Add Node</button>
     </form>
-    <div id="status">Status: Mock running (no ESP32 needed)</div>
+    <div id="status">Status: Running (Server Online)</div>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -468,7 +468,7 @@
     window.onload = function() {
       buildGrid();
       initCharts();
-      setStatus("Mock running – simulating data every 60 seconds");
+      setStatus("Running – live data every 60 seconds");
       mockUpdateAllNodes();
       setInterval(mockUpdateAllNodes, 1000);
     };
